@@ -17,7 +17,9 @@ services:
       - ACTIVE_POOL=${ACTIVE_POOL}
       - BLUE_PORT=${BLUE_PORT}
       - GREEN_PORT=${GREEN_PORT}
-
+    networks:
+      - app_net
+      
   app_blue:
     image: ${BLUE_IMAGE}
     container_name: app_blue

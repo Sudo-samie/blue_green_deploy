@@ -24,14 +24,15 @@ else
 fi
 
 # Substitute variables in nginx.conf.template and generate nginx.conf
+
 echo " Generating /etc/nginx/nginx.conf..."
-envsubst '${PRIMARY} ${BACKUP} ${PRIMARY_PORT} ${BACKUP_PORT}' \
-  < /etc/nginx/nginx.conf.template \
-  > /etc/nginx/nginx.conf
+envsubst "${PRIMARY} ${BACKUP} ${PRIMARY_PORT} ${BACKUP_PORT}" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+echo " Generated /etc/nginx/nginx.conf:"
 
 # Optional: wait a few seconds for apps to become ready
 echo " Waiting for app containers to initialize..."
 sleep 5
 
 echo " Starting Nginx with PRIMARY=$PRIMARY ($PRIMARY_PORT), BACKUP=$BACKUP ($BACKUP_PORT)"
+
 exec nginx -g 'daemon off;'
