@@ -1,40 +1,44 @@
 events {}
 
 http {
+    # Docker’s internal DNS resolver
     resolver 127.0.0.11 valid=10s ipv6=off;
 
     # Upstream group with automatic fallback (Blue → Green)
     upstream app_upstream {
-        server app_blue:3000 max_fails=1 fail_timeout=2s;
-        server app_green:3000 backup;
         zone backend 64k;
+
+        # Primary and backup
+        server app_blue:3000 max_fails=2 fail_timeout=3s;
+        server app_green:3000 backup;
     }
 
     server {
         listen 80;
-        server_name localhost;
+        server_name _;
 
-        # Fast failure detection
+        # Health check endpoint
+        location /healthz {
+            return 200 'ok';
+            add_header Content-Type text/plain;
+        }
+
+        # Main proxy logic
         location / {
-            proxy_connect_timeout 1s;
+            proxy_connect_timeout 2s;
             proxy_send_timeout 5s;
             proxy_read_timeout 5s;
 
-            # Retry same request with backup if primary fails
-            proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+            # Auto-fallback
+            proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
             proxy_next_upstream_tries 2;
 
-            # Forward headers without stripping
-            proxy_pass_header X-App-Pool;
-            proxy_pass_header X-Release-Id;
-
-            # Forward client details
+            # Headers
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
 
-            # Send traffic to upstream
             proxy_pass http://app_upstream;
         }
     }
