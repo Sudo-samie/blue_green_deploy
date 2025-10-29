@@ -1,0 +1,16 @@
+# Ignore local dotenv files
+.env
+.env.*          # ignore .env.local, .env.production, etc.
+
+# Allow checked-in examples/templates
+!.env.example
+!.env.sample
+
+# Ignore Docker files
+docker-compose.override.yml
+.dockerignore
+
+
+# Ignore Nginx logs
+logs/
+*.log
