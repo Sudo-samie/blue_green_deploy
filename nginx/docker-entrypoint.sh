@@ -1,38 +1,39 @@
 #!/bin/sh
 set -e
 
-echo " Configuring Nginx for active pool: $ACTIVE_POOL"
+echo "================================================"
+echo "Nginx Dynamic Configuration Setup"
+echo "================================================"
 
-# Determine which pool is primary vs backup
+# Set default values if not provided
+ACTIVE_POOL=${ACTIVE_POOL:-blue}
+
+# Calculate standby pool (opposite of active)
 if [ "$ACTIVE_POOL" = "blue" ]; then
-  export PRIMARY="app_blue"
-  export BACKUP="app_green"
-  export PRIMARY_PORT="$BLUE_PORT"
-  export BACKUP_PORT="$GREEN_PORT"
-elif [ "$ACTIVE_POOL" = "green" ]; then
-  export PRIMARY="app_green"
-  export BACKUP="app_blue"
-  export PRIMARY_PORT="$GREEN_PORT"
-  export BACKUP_PORT="$BLUE_PORT"
+    STANDBY_POOL="green"
 else
-  echo " Unknown ACTIVE_POOL: '$ACTIVE_POOL' (expected 'blue' or 'green')"
-  echo "Defaulting to blue as primary."
-  export PRIMARY="app_blue"
-  export BACKUP="app_green"
-  export PRIMARY_PORT="$BLUE_PORT"
-  export BACKUP_PORT="$GREEN_PORT"
+    STANDBY_POOL="blue"
 fi
 
-# Substitute variables in nginx.conf.template and generate nginx.conf
+echo "Active Pool: $ACTIVE_POOL"
+echo "Standby Pool: $STANDBY_POOL"
 
-echo " Generating /etc/nginx/nginx.conf..."
-envsubst "${PRIMARY} ${BACKUP} ${PRIMARY_PORT} ${BACKUP_PORT}" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
-echo " Generated /etc/nginx/nginx.conf:"
+# Export variables for envsubst
+export ACTIVE_POOL
+export STANDBY_POOL
 
-# Optional: wait a few seconds for apps to become ready
-echo " Waiting for app containers to initialize..."
-sleep 5
+# Generate nginx.conf from template using envsubst
+echo "Generating nginx.conf from template..."
+envsubst '${ACTIVE_POOL} ${STANDBY_POOL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
-echo " Starting Nginx with PRIMARY=$PRIMARY ($PRIMARY_PORT), BACKUP=$BACKUP ($BACKUP_PORT)"
+# Verify the generated configuration
+echo "Testing nginx configuration..."
+nginx -t
 
+echo "Configuration generated successfully!"
+echo "================================================"
+cat /etc/nginx/nginx.conf
+echo "================================================"
+
+# Execute the original nginx entrypoint
 exec nginx -g 'daemon off;'

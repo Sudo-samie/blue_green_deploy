@@ -2,61 +2,59 @@ version: "3.8"
 
 services:
   nginx:
-    image: nginx:stable-alpine
-    container_name: nginx_proxy
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: nginx_lb
+    environment:
+      - ACTIVE_POOL=${ACTIVE_POOL:-blue}
     ports:
       - "8080:80"
-    volumes:
-      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
-      - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
-    entrypoint: ["/docker-entrypoint.sh"]
     depends_on:
       - app_blue
       - app_green
-    environment:
-      - PRIMARY=${PRIMARY}
-      - BLUE_PORT=${BLUE_PORT}
-      - BACKUP=${BACKUP}   
-      - GREEN_PORT=${GREEN_PORT}
     networks:
-      - app_net
+      - app_network
+    restart: unless-stopped
+
       
   app_blue:
     image: ${BLUE_IMAGE}
     container_name: app_blue
     environment:
       - APP_COLOR=blue
+      - APP_POOL=blue
       - PORT=${BLUE_PORT:-3000}
       - RELEASE_ID=${RELEASE_ID_BLUE}
     ports:
       - "${BLUE_PORT:-8081}:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3000}/healthz"]
       interval: 5s
       timeout: 2s
       retries: 3
-      start_period: 5s
     networks:
-      - app_net
+      - app_network
 
   app_green:
     image: ${GREEN_IMAGE}
     container_name: app_green
     environment:
+      - APP_POOL=green
       - APP_COLOR=green
       - PORT=${GREEN_PORT:-3000}
       - RELEASE_ID=${RELEASE_ID_GREEN}
     ports:
       - "${GREEN_PORT:-8082}:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3000}/healthz"]
       interval: 5s
       timeout: 2s
       retries: 3
-      start_period: 5s
     networks:
-      - app_net
+      - app_network
+
 
 networks:
-  app_net:
+  app_network:
     driver: bridge
