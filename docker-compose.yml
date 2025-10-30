@@ -15,9 +15,8 @@ services:
       - app_green
     environment:
       - PRIMARY=${PRIMARY}
-      - BACKUP=${BACKUP}   
-      - ACTIVE_POOL=${ACTIVE_POOL}
       - BLUE_PORT=${BLUE_PORT}
+      - BACKUP=${BACKUP}   
       - GREEN_PORT=${GREEN_PORT}
     networks:
       - app_net
